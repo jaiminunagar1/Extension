@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Meesho Image & Shipping Optimizer",
+  "version": "1.0",
+  "description": "Tests image variants on Meesho to find the lowest shipping cost.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://supplier.meesho.com/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
