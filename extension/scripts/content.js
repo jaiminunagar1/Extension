@@ -1,5 +1,7 @@
 console.log('Content script loaded');
 
+const OPTIMIZE_API_URL = 'https://wgcclfm7-8000.inc1.devtunnels.ms/images/optimize';
+
 function getUploadedImageUrls() {
 	const urls = [];
 	document.querySelectorAll('.MuiBox-root.css-ib7boq').forEach(container => {
@@ -10,63 +12,48 @@ function getUploadedImageUrls() {
 	return urls;
 }
 
-async function postImagesToApi(apiUrl, expectedMinPrice) {
+async function sendImagesToApi() {
 	const urls = getUploadedImageUrls();
 	const results = [];
+
 	for (const url of urls) {
 		try {
-			const res = await fetch(url);
-			const blob = await res.blob();
-			const form = new FormData();
-			form.append('image', blob, (new URL(url)).pathname.split('/').pop());
-			if (typeof expectedMinPrice === 'number' && !isNaN(expectedMinPrice)) {
-				form.append('expectedMinPrice', String(expectedMinPrice));
-			}
-			const apiRes = await fetch(apiUrl, { method: 'POST', body: form });
+			const apiRes = await fetch(OPTIMIZE_API_URL, {
+				method: 'POST',
+				body: "fileuri=" + encodeURIComponent(url),
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded',
+					accept: 'application/json'
+				}
+			});
+		
+
 			let body = null;
-			try { body = await apiRes.json(); } catch(e) { body = await apiRes.text(); }
+			try { body = await apiRes.json(); } catch (e) { body = await apiRes.text(); }
+			console.log('Optimize API response for', url, { ok: apiRes.ok, status: apiRes.status, body });
 			results.push({ url, ok: apiRes.ok, status: apiRes.status, body });
 		} catch (err) {
+			console.error('Error sending image to optimize API for', url, err);
 			results.push({ url, ok: false, error: String(err) });
 		}
 	}
+
 	return results;
 }
 
 if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
 	chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-		if (msg && msg.type === 'downloadImages') {
-			const urls = getUploadedImageUrls();
-			if (!urls.length) {
-				sendResponse({ success: false, message: 'No images found on this page.' });
-				return false;
-			}
-
-			chrome.runtime.sendMessage({
-				type: 'downloadImagesToDisk',
-				urls
-			}, () => {
-				if (chrome.runtime.lastError) {
-					sendResponse({ success: false, message: 'Background download failed.' });
-					return;
-				}
-				sendResponse({ success: true, message: 'Queued ' + urls.length + ' image(s) for download.' });
-			});
-			return true;
-		}
-
 		if (msg && msg.type === 'runAnalysis') {
 			(async () => {
-				const apiUrl = msg.apiUrl;
-				const expectedMinPrice = msg.expectedMinPrice;
-				if (!apiUrl) {
-					sendResponse({ success: false, message: 'No API URL provided' });
-					return;
-				}
-				const results = await postImagesToApi(apiUrl, expectedMinPrice);
-				sendResponse({ success: true, message: 'Posted ' + results.length + ' images', results });
+				const results = await sendImagesToApi();
+				console.log('Final optimize API results:', results);
+				sendResponse({
+					success: true,
+					message: 'Sent ' + results.length + ' image(s) to optimize API.',
+					results
+				});
 			})();
-			return true; // async
+			return true;
 		}
 	});
 }
