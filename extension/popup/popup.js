@@ -1,35 +1,24 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const apiUrlInput = document.getElementById('apiUrl');
   const minPriceInput = document.getElementById('minPrice');
   const runButton = document.getElementById('runBtn');
   const status = document.getElementById('status');
 
-  chrome.storage.local.get(['apiUrl', 'minPrice'], (result) => {
-    if (result.apiUrl) {
-      apiUrlInput.value = result.apiUrl;
-    }
-    if (result.minPrice) {
+  chrome.storage.local.get(['minPrice'], (result) => {
+    if (typeof result.minPrice === 'number' && !isNaN(result.minPrice)) {
       minPriceInput.value = result.minPrice;
     }
   });
 
   runButton.addEventListener('click', async () => {
-    const apiUrl = apiUrlInput.value.trim();
     const expectedMinPrice = Number(minPriceInput.value);
 
-    if (!apiUrl) {
-      status.textContent = 'Please enter an API URL.';
-      return;
-    }
-
-    await chrome.storage.local.set({ apiUrl, minPrice: expectedMinPrice });
-    status.textContent = 'Sending request...';
+    await chrome.storage.local.set({ minPrice: expectedMinPrice });
+    status.textContent = 'Preparing downloads...';
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
     chrome.tabs.sendMessage(tab.id, {
-      type: 'runAnalysis',
-      apiUrl,
+      type: 'downloadImages',
       expectedMinPrice
     }, (response) => {
       if (chrome.runtime.lastError) {
@@ -37,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      status.textContent = response?.message || 'Analysis finished.';
+      status.textContent = response?.message || 'Download started.';
     });
   });
 });

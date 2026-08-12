@@ -35,6 +35,34 @@ async function postImagesToApi(apiUrl, expectedMinPrice) {
 
 if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
 	chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+		if (msg && msg.type === 'downloadImages') {
+			const urls = getUploadedImageUrls();
+			if (!urls.length) {
+				sendResponse({ success: false, message: 'No images found on this page.' });
+				return false;
+			}
+
+			urls.forEach((url, index) => {
+				let fileName = 'image_' + (index + 1);
+				try {
+					const parsed = new URL(url);
+					const pathname = parsed.pathname.split('/').pop();
+					if (pathname && pathname.includes('.')) {
+						fileName = pathname;
+					}
+				} catch (e) {}
+
+				chrome.downloads.download({
+					url,
+					filename: fileName,
+					saveAs: false
+				});
+			});
+
+			sendResponse({ success: true, message: 'Queued ' + urls.length + ' image(s) for download.' });
+			return false;
+		}
+
 		if (msg && msg.type === 'runAnalysis') {
 			(async () => {
 				const apiUrl = msg.apiUrl;
