@@ -42,25 +42,17 @@ if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage)
 				return false;
 			}
 
-			urls.forEach((url, index) => {
-				let fileName = 'image_' + (index + 1);
-				try {
-					const parsed = new URL(url);
-					const pathname = parsed.pathname.split('/').pop();
-					if (pathname && pathname.includes('.')) {
-						fileName = pathname;
-					}
-				} catch (e) {}
-
-				chrome.downloads.download({
-					url,
-					filename: fileName,
-					saveAs: false
-				});
+			chrome.runtime.sendMessage({
+				type: 'downloadImagesToDisk',
+				urls
+			}, () => {
+				if (chrome.runtime.lastError) {
+					sendResponse({ success: false, message: 'Background download failed.' });
+					return;
+				}
+				sendResponse({ success: true, message: 'Queued ' + urls.length + ' image(s) for download.' });
 			});
-
-			sendResponse({ success: true, message: 'Queued ' + urls.length + ' image(s) for download.' });
-			return false;
+			return true;
 		}
 
 		if (msg && msg.type === 'runAnalysis') {

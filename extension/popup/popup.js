@@ -17,12 +17,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
+    if (!tab || !tab.id) {
+      status.textContent = 'No active tab found.';
+      return;
+    }
+
+    const tabUrl = tab.url || '';
+    const isSupportedTab = tabUrl.includes('supplier.meesho.com/panel/v3/new/cataloging/');
+
+    if (!isSupportedTab) {
+      status.textContent = 'Open a Meesho catalog page first.';
+      return;
+    }
+
     chrome.tabs.sendMessage(tab.id, {
       type: 'downloadImages',
       expectedMinPrice
     }, (response) => {
       if (chrome.runtime.lastError) {
-        status.textContent = 'Could not reach the page script.';
+        status.textContent = 'Could not reach the page script. Reload the extension and reopen the Meesho page.';
         return;
       }
 
