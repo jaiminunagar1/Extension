@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const expectedMinPrice = Number(minPriceInput.value);
 
     await chrome.storage.local.set({ minPrice: expectedMinPrice });
-    status.textContent = 'Preparing downloads...';
+    status.textContent = 'Sending image to API...';
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     chrome.tabs.sendMessage(tab.id, {
-      type: 'downloadImages',
+      type: 'runAnalysis',
       expectedMinPrice
     }, (response) => {
       if (chrome.runtime.lastError) {
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      status.textContent = response?.message || 'Download started.';
+      status.textContent = response?.message || 'Image sent.';
     });
   });
 });
