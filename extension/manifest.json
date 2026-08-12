@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Meesho Seller Image Assistant",
+  "version": "1.0.0",
+  "description": "Helps Meesho sellers analyze product images, send them to an API, and compare candidates against a minimum price target.",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": ["https://supplier.meesho.com/panel/v3/new/cataloging/*", "https://*.meesho.com/*", "https://*/*"],
+  "background": {
+    "service_worker": "scripts/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://supplier.meesho.com/panel/v3/new/cataloging/*"],
+      "js": ["scripts/content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Meesho Seller Assistant"
+  }
+}
