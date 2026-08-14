@@ -1,5 +1,24 @@
 console.log('Content script loaded');
 
+window.addEventListener('message', (event) => {
+	if (event.source !== window) {
+		return;
+	}
+
+	if (event.data && event.data.source === 'MY_EXTENSION' && event.data.type === 'API_INTERCEPTED') {
+		console.log('API intercepted:', event.data.payload);
+
+		try {
+			chrome.runtime.sendMessage({
+				type: 'API_INTERCEPTED',
+				payload: event.data.payload
+			});
+		} catch (error) {
+			console.warn('Failed to forward intercepted API data to background.', error);
+		}
+	}
+});
+
 const OPTIMIZE_API_URL = 'https://wgcclfm7-8000.inc1.devtunnels.ms/images/optimize';
 
 function getUploadedImageUrls() {

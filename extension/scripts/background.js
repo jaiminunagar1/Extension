@@ -1,6 +1,12 @@
 console.log('Background script loaded');
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg && msg.type === 'API_INTERCEPTED') {
+    console.log('Intercepted API:', msg.payload);
+    sendResponse({ success: true });
+    return false;
+  }
+
   if (msg && msg.type === 'downloadImagesToDisk') {
     const urls = Array.isArray(msg.urls) ? msg.urls : [];
 
