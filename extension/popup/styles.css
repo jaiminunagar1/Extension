@@ -5,7 +5,7 @@ body {
 }
 
 .container {
-  width: 280px;
+  width: 320px;
   padding: 16px;
   box-sizing: border-box;
 }
@@ -13,6 +13,11 @@ body {
 h1 {
   font-size: 18px;
   margin: 0 0 12px;
+}
+
+h2 {
+  font-size: 16px;
+  margin: 12px 0 8px;
 }
 
 label {
@@ -46,8 +51,47 @@ button:hover {
   background: #1d4ed8;
 }
 
+.secondary-btn {
+  background: #0f766e;
+}
+
+.secondary-btn:hover {
+  background: #115e59;
+}
+
 #status {
   margin-top: 10px;
   font-size: 12px;
   color: #374151;
+}
+
+#resultBox {
+  margin-top: 14px;
+  border-top: 1px solid #dbeafe;
+  padding-top: 10px;
+}
+
+#resultBox.hidden {
+  display: none;
+}
+
+#resultImage {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 10px;
+}
+
+#resultDetails {
+  font-size: 12px;
+  color: #374151;
+  word-break: break-word;
+}
+
+#resultDetails p {
+  margin: 6px 0;
 }

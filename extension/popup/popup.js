@@ -2,6 +2,34 @@ document.addEventListener('DOMContentLoaded', () => {
   const minPriceInput = document.getElementById('minPrice');
   const runButton = document.getElementById('runBtn');
   const status = document.getElementById('status');
+  const resultBox = document.getElementById('resultBox');
+  const resultImage = document.getElementById('resultImage');
+  const resultDetails = document.getElementById('resultDetails');
+  const downloadBtn = document.getElementById('downloadBtn');
+
+  const renderResult = (bestImage) => {
+    if (!bestImage) {
+      resultBox.classList.add('hidden');
+      return;
+    }
+
+    resultImage.src = bestImage.previewUrl || bestImage.downloadUrl;
+    resultImage.alt = bestImage.filename || 'Best generated image';
+    resultDetails.innerHTML = `
+      <p><strong>Shipping Charge:</strong> ₹${Number(bestImage.shippingCharge).toFixed(0)}</p>
+      ${bestImage.duplicatePid != null ? `<p><strong>Duplicate PID:</strong> ${bestImage.duplicatePid}</p>` : ''}
+      ${bestImage.uploadedImageUrl ? `<p><strong>Uploaded Image:</strong> ${bestImage.uploadedImageUrl}</p>` : ''}
+    `;
+
+    downloadBtn.onclick = () => {
+      const link = document.createElement('a');
+      link.href = bestImage.downloadUrl || bestImage.previewUrl;
+      link.download = bestImage.downloadName || 'best-image.jpg';
+      link.click();
+    };
+
+    resultBox.classList.remove('hidden');
+  };
 
   chrome.storage.local.get(['minPrice'], (result) => {
     if (typeof result.minPrice === 'number' && !isNaN(result.minPrice)) {
@@ -13,7 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const expectedMinPrice = Number(minPriceInput.value);
 
     await chrome.storage.local.set({ minPrice: expectedMinPrice });
-    status.textContent = 'Sending image to API...';
+    status.textContent = 'Generating and comparing Meesho image options...';
+    resultBox.classList.add('hidden');
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
@@ -39,7 +68,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      status.textContent = response?.message || 'Image sent.';
+      status.textContent = response?.message || 'Image analysis complete.';
+      renderResult(response?.bestImage || null);
     });
   });
 });
