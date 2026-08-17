@@ -16,11 +16,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
 
     urls.forEach((url, index) => {
-      let fileName = 'meesho/' + ('image_' + (index + 1) + '.jpg');
+      let fileName = typeof msg.filename === 'string' && msg.filename
+        ? msg.filename
+        : 'meesho/' + ('image_' + (index + 1) + '.jpg');
+
+      if (!fileName.includes('/')) {
+        fileName = 'meesho/' + fileName;
+      }
+
       try {
         const parsed = new URL(url);
         const pathname = parsed.pathname.split('/').pop();
-        if (pathname && pathname.includes('.')) {
+        if (pathname && pathname.includes('.') && !msg.filename) {
           fileName = 'meesho/' + pathname;
         }
       } catch (e) {}

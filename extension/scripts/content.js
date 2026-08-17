@@ -382,6 +382,306 @@ async function runImageComparisonFlow() {
   };
 }
 
+const normalizeImageResult = (image, index) => ({
+	originalIndex: index,
+	filename: image?.filename || `generated-image-${index + 1}.jpg`,
+	mimeType: image?.mime_type || 'image/jpeg',
+	sizeKb: Number(image?.size_kb) || 0,
+	uploadedImageUrl: null,
+	shippingCharge: null,
+	duplicatePid: null,
+	uploadStatus: 'pending',
+	shippingStatus: 'pending',
+	error: null
+});
+
+function getSubSubCategoryId() {
+	const rawValue = window.__MEESHO_EXTENSION_CONTEXT__?.sub_sub_category_id ?? PAGE_CONTEXT.sub_sub_category_id ?? null;
+	if (rawValue == null || rawValue === '') return null;
+	const parsedValue = Number(rawValue);
+	return Number.isFinite(parsedValue) ? parsedValue : null;
+}
+
+async function getOptimizedImageResponse(imageUrl) {
+	if (USE_MOCK_API_RESPONSE) {
+		return {
+			ok: true,
+			status: 200,
+			async json() {
+				return MOCK_API_RESPONSE;
+			},
+			async text() {
+				return JSON.stringify(MOCK_API_RESPONSE);
+			}
+		};
+	}
+
+	const response = await fetch(OPTIMIZE_API_URL, {
+		method: 'POST',
+		body: 'fileuri=' + encodeURIComponent(imageUrl),
+		headers: {
+			'Content-Type': 'application/x-www-form-urlencoded',
+			accept: 'application/json'
+		}
+	});
+
+	return response;
+}
+
+async function uploadImageToMeesho(imageFile, context) {
+	if (!(imageFile instanceof File)) {
+		throw new Error('Invalid image file for Meesho upload');
+	}
+
+	const formData = new FormData();
+	formData.append('file', imageFile);
+	formData.append('data', 'undefined');
+
+	const headers = {
+		accept: 'application/json, text/plain, */*',
+		'accept-language': 'en-US,en;q=0.9',
+		'client-package-version': '1.0.1',
+		'client-type': 'd-web',
+		origin: 'https://supplier.meesho.com',
+		referer: context.referer || 'https://supplier.meesho.com/'
+	};
+
+	if (context.browserId) headers['browser-id'] = String(context.browserId);
+	if (context.identifier) headers.identifier = String(context.identifier);
+	if (context.supplierId) headers['supplier-id'] = String(context.supplierId);
+
+		console.log('Meesho upload request', {
+		url: MEESHO_UPLOAD_API_URL,
+		fileName: imageFile?.name,
+		headers,
+		formDataKeys: ['file', 'data']
+	});
+
+	const response = await fetch(MEESHO_UPLOAD_API_URL, {
+		method: 'POST',
+		credentials: 'include',
+		headers,
+		body: formData
+	});
+
+	let uploadResponse;
+	try {
+		uploadResponse = await response.json();
+	} catch (error) {
+		const text = await response.text();
+		console.error('Meesho upload raw response text', text);
+		throw new Error(text || 'Meesho upload failed');
+	}
+
+	console.log('Meesho upload response', {
+		status: response.status,
+		ok: response.ok,
+		body: uploadResponse
+	});
+
+	if (!response.ok || !uploadResponse || !uploadResponse.image) {
+		throw new Error(uploadResponse?.message || 'Meesho upload failed');
+	}
+
+	if (!isValidHttpUrl(uploadResponse.image)) {
+		throw new Error('Meesho upload returned an invalid image URL');
+	}
+
+	return uploadResponse.image;
+}
+
+async function fetchShippingRecommendation(uploadedImageUrl, subSubCategoryId, context) {
+	if (!isValidHttpUrl(uploadedImageUrl)) {
+		throw new Error('Uploaded image URL is invalid');
+	}
+
+	const payload = {
+		is_old_image_match_enabled: false,
+		sscat_id: Number(subSubCategoryId),
+		image_url: uploadedImageUrl
+	};
+
+	const headers = {
+		Accept: 'application/json, text/plain, */*',
+		'Content-Type': 'application/json;charset=UTF-8',
+		'client-package-version': '1.0.1',
+		'client-type': 'd-web',
+		origin: 'https://supplier.meesho.com',
+		referer: context.referer || 'https://supplier.meesho.com/'
+	};
+
+	if (context.browserId) headers['browser-id'] = String(context.browserId);
+	if (context.identifier) headers.identifier = String(context.identifier);
+	if (context.supplierId) headers['supplier-id'] = String(context.supplierId);
+
+	console.log('Meesho shipping request', {
+		url: MEESHO_SHIPPING_API_URL,
+		payload,
+		headers
+	});
+
+	const response = await fetch(MEESHO_SHIPPING_API_URL, {
+		method: 'POST',
+		credentials: 'include',
+		headers,
+		body: JSON.stringify(payload)
+	});
+
+	let responseBody;
+	try {
+		responseBody = await response.json();
+	} catch (error) {
+		const text = await response.text();
+		console.error('Meesho shipping raw response text', text);
+		throw new Error(text || 'Shipping recommendation fetch failed');
+	}
+
+	console.log('Meesho shipping response', {
+		status: response.status,
+		ok: response.ok,
+		body: responseBody
+	});
+
+	if (!response.ok || !responseBody || !responseBody.data) {
+		throw new Error(responseBody?.errors || 'Shipping recommendation fetch failed');
+	}
+
+	const shippingCharge = Number(responseBody.data.wu_shipping_charge);
+	if (!Number.isFinite(shippingCharge)) {
+		throw new Error('Missing or invalid wu_shipping_charge');
+	}
+
+	return {
+		duplicatePid: responseBody.data.duplicate_pid ?? null,
+		shippingCharge
+	};
+}
+
+async function processGeneratedImage(image, index, subSubCategoryId, context) {
+	const result = normalizeImageResult(image, index);
+
+	try {
+		if (!image || typeof image !== 'object') {
+			throw new Error('Invalid optimized image payload');
+		}
+
+		if (!image.data_uri || typeof image.data_uri !== 'string') {
+			throw new Error('Invalid image data URI');
+		}
+
+		const file = dataUriToFile(image.data_uri, image.filename, image.mime_type);
+		result.uploadStatus = 'uploading';
+		const uploadedImageUrl = await uploadImageToMeesho(file, context);
+		result.uploadedImageUrl = uploadedImageUrl;
+		result.uploadStatus = 'success';
+		result.shippingStatus = 'fetching';
+
+		const shipping = await fetchShippingRecommendation(uploadedImageUrl, subSubCategoryId, context);
+		result.duplicatePid = shipping.duplicatePid;
+		result.shippingCharge = Number(shipping.shippingCharge);
+		result.shippingStatus = 'success';
+		result.error = null;
+	} catch (error) {
+		result.uploadStatus = 'failed';
+		result.shippingStatus = 'failed';
+		result.error = error && error.message ? error.message : String(error);
+		console.error('Failed to process generated image', { image: result.filename, error });
+	}
+
+	return result;
+}
+
+function selectLowestShippingImage(results) {
+	const validResults = (results || []).filter((item) => {
+		if (!item || !item.uploadedImageUrl) return false;
+		const value = Number(item.shippingCharge);
+		return Number.isFinite(value);
+	});
+
+	if (!validResults.length) {
+		return null;
+	}
+
+	validResults.sort((a, b) => Number(a.shippingCharge) - Number(b.shippingCharge));
+	return validResults[0];
+}
+
+async function processOptimizedImagesForCurrentPage() {
+	const currentPageContext = getPageContext();
+	const subSubCategoryId = getSubSubCategoryId();
+
+	if (subSubCategoryId == null) {
+		throw new Error('Missing sub_sub_category_id. The page request must include the actual Meesho sub-sub-category ID.');
+	}
+
+	const rawImageUrls = getUploadedImageUrls();
+	const optimizeResults = [];
+
+	for (const imageUrl of rawImageUrls) {
+		try {
+			const optimizeResponse = await getOptimizedImageResponse(imageUrl);
+			let body = null;
+			try {
+				body = await optimizeResponse.json();
+			} catch (error) {
+				body = await optimizeResponse.text();
+			}
+			console.log('Optimize API response for', imageUrl, { ok: optimizeResponse.ok, status: optimizeResponse.status, body });
+			optimizeResults.push({ url: imageUrl, ok: optimizeResponse.ok, status: optimizeResponse.status, body });
+		} catch (error) {
+			console.error('Error sending image to optimize API for', imageUrl, error);
+			optimizeResults.push({ url: imageUrl, ok: false, error: String(error) });
+		}
+	}
+
+	const generatedResults = [];
+	for (const optimizeResult of optimizeResults) {
+		const body = optimizeResult?.body;
+		if (!body || !Array.isArray(body.images) || !body.images.length) {
+			if (optimizeResult?.ok === false) {
+				generatedResults.push({
+					filename: 'optimize-error',
+					uploadedImageUrl: null,
+					shippingCharge: null,
+					duplicatePid: null,
+					uploadStatus: 'failed',
+					shippingStatus: 'failed',
+					error: optimizeResult.error || 'Optimize API returned no images',
+					originalIndex: generatedResults.length
+				});
+			}
+			continue;
+		}
+
+		for (let i = 0; i < body.images.length; i += 1) {
+			const image = body.images[i];
+			const processed = await processGeneratedImage(image, i, subSubCategoryId, currentPageContext);
+			generatedResults.push(processed);
+		}
+	}
+
+	const selected = selectLowestShippingImage(generatedResults);
+	const fallbackMessage = selected ? 'Selected lowest shipping charge image.' : 'No valid Meesho shipping result was found.';
+	const result = {
+		success: Boolean(selected),
+		message: fallbackMessage,
+		results: generatedResults,
+		bestImage: selected ? {
+			filename: selected.filename,
+			previewUrl: selected.uploadedImageUrl,
+			downloadUrl: selected.uploadedImageUrl,
+			downloadName: selected.filename,
+			shippingCharge: Number(selected.shippingCharge),
+			duplicatePid: selected.duplicatePid,
+			uploadedImageUrl: selected.uploadedImageUrl,
+			originalIndex: selected.originalIndex
+		} : null
+	};
+
+	console.log('Final Meesho comparison results:', result);
+	return result;
+}
+
 if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg && msg.type === 'runAnalysis') {
