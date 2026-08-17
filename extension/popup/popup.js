@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    resultImage.src = bestImage.previewUrl || bestImage.downloadUrl || bestImage.uploadedImageUrl;
+    resultImage.src = bestImage.previewUrl || bestImage.downloadUrl;
     resultImage.alt = bestImage.filename || 'Best generated image';
     resultDetails.innerHTML = `
       <p><strong>Shipping Charge:</strong> ₹${Number(bestImage.shippingCharge).toFixed(0)}</p>
@@ -22,16 +22,10 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
 
     downloadBtn.onclick = () => {
-      const downloadUrl = bestImage.downloadUrl || bestImage.previewUrl || bestImage.uploadedImageUrl;
-      if (!downloadUrl) {
-        return;
-      }
-
-      chrome.runtime.sendMessage({
-        type: 'downloadImagesToDisk',
-        urls: [downloadUrl],
-        filename: bestImage.downloadName || bestImage.filename || 'best-image.jpg'
-      });
+      const link = document.createElement('a');
+      link.href = bestImage.downloadUrl || bestImage.previewUrl;
+      link.download = bestImage.downloadName || 'best-image.jpg';
+      link.click();
     };
 
     resultBox.classList.remove('hidden');

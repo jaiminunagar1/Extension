@@ -5,7 +5,7 @@ body {
 }
 
 .container {
-  width: 300px;
+  width: 320px;
   padding: 16px;
   box-sizing: border-box;
 }
@@ -13,6 +13,11 @@ body {
 h1 {
   font-size: 18px;
   margin: 0 0 12px;
+}
+
+h2 {
+  font-size: 16px;
+  margin: 12px 0 8px;
 }
 
 label {
@@ -46,6 +51,14 @@ button:hover {
   background: #1d4ed8;
 }
 
+.secondary-btn {
+  background: #0f766e;
+}
+
+.secondary-btn:hover {
+  background: #115e59;
+}
+
 #status {
   margin-top: 10px;
   font-size: 12px;
@@ -53,48 +66,32 @@ button:hover {
 }
 
 #resultBox {
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
+  margin-top: 14px;
+  border-top: 1px solid #dbeafe;
+  padding-top: 10px;
 }
 
-.preview-wrap {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 160px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  overflow: hidden;
+#resultBox.hidden {
+  display: none;
 }
 
 #resultImage {
-  max-width: 100%;
-  max-height: 200px;
   display: block;
+  width: 100%;
+  max-height: 220px;
   object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 10px;
 }
 
 #resultDetails {
   font-size: 12px;
-  margin-top: 10px;
   color: #374151;
+  word-break: break-word;
 }
 
 #resultDetails p {
   margin: 6px 0;
-  word-break: break-word;
-}
-
-.secondary-btn {
-  background: #10b981;
-}
-
-.secondary-btn:hover {
-  background: #059669;
-}
-
-.hidden {
-  display: none;
 }
