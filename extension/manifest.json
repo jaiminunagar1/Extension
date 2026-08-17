@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Helps Meesho sellers analyze product images, send them to an API, and compare candidates against a minimum price target.",
   "permissions": ["storage", "activeTab", "downloads"],
-  "host_permissions": ["https://supplier.meesho.com/*"],
+  "host_permissions": ["https://supplier.meesho.com/*", "https://upload.meeshosupplyassets.com/*"],
   "background": {
     "service_worker": "scripts/background.js"
   },

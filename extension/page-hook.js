@@ -77,6 +77,13 @@
   const notifyInterceptedRequest = (payload) => {
     const sub_sub_category_id = extractSubSubCategoryId(payload?.requestBody);
 
+    if (sub_sub_category_id != null) {
+      window.__MEESHO_EXTENSION_CONTEXT__ = {
+        ...(window.__MEESHO_EXTENSION_CONTEXT__ || {}),
+        sub_sub_category_id
+      };
+    }
+
     try {
       window.postMessage(
         {

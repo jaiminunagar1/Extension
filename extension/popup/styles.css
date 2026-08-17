@@ -5,7 +5,7 @@ body {
 }
 
 .container {
-  width: 280px;
+  width: 300px;
   padding: 16px;
   box-sizing: border-box;
 }
@@ -50,4 +50,51 @@ button:hover {
   margin-top: 10px;
   font-size: 12px;
   color: #374151;
+}
+
+#resultBox {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.preview-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 160px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#resultImage {
+  max-width: 100%;
+  max-height: 200px;
+  display: block;
+  object-fit: contain;
+}
+
+#resultDetails {
+  font-size: 12px;
+  margin-top: 10px;
+  color: #374151;
+}
+
+#resultDetails p {
+  margin: 6px 0;
+  word-break: break-word;
+}
+
+.secondary-btn {
+  background: #10b981;
+}
+
+.secondary-btn:hover {
+  background: #059669;
+}
+
+.hidden {
+  display: none;
 }
