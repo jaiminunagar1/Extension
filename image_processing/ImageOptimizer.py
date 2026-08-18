@@ -276,13 +276,13 @@ class ImageOptimizer:
 
             output = output_dir / f"{input_file.stem}_{version['width']}x{version['height']}"
 
-            if fmt in ("jpg", "jpeg"):
+            if fmt in ("jpg", "jpeg", "png"):
                 output = output.with_suffix(".jpg")
                 self.save_jpeg(img, str(output), self.target_size_kb)
 
-            elif fmt == "png":
-                output = output.with_suffix(".png")
-                self.save_png(img, str(output), self.target_size_kb)
+            # elif fmt == "png":
+            #     output = output.with_suffix(".png")
+            #     self.save_png(img, str(output), self.target_size_kb)
 
             elif fmt == "webp":
                 output = output.with_suffix(".webp")

@@ -23,7 +23,7 @@ window.addEventListener('message', (event) => {
 	}
 });
 
-const OPTIMIZE_API_URL = 'https://wgcclfm7-8000.inc1.devtunnels.ms/images/optimize';
+const OPTIMIZE_API_URL = 'http://localhost:8000/images/optimize';
 const MEESHO_UPLOAD_API_URL = 'https://supplier.meesho.com/api/cataloging/singleCatalogUpload/uploadSingleCatalogImages';
 const MEESHO_SHIPPING_API_URL = 'https://supplier.meesho.com/api/cataloging/priceRecommendation/fetchDuplicatePid';
 
@@ -119,7 +119,7 @@ function getUploadedImageUrls() {
 	return urls;
 }
 
-const USE_MOCK_API_RESPONSE = true;
+const USE_MOCK_API_RESPONSE = false;
 
 const MOCK_API_RESPONSE = {
 	count: 3,
